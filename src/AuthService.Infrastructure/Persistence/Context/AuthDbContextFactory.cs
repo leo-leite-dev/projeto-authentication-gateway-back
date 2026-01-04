@@ -1,22 +1,26 @@
-using AuthService.Infrastructure.Persistence.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 using Microsoft.Extensions.Configuration;
 
-public sealed class AuthDbContextFactory : IDesignTimeDbContextFactory<AuthDbContext>
+namespace AuthService.Infrastructure.Persistence.Context
 {
-    public AuthDbContext CreateDbContext(string[] args)
+    public class AuthDbContextFactory : IDesignTimeDbContextFactory<AuthDbContext>
     {
-        var configuration = new ConfigurationBuilder()
-            .SetBasePath(Directory.GetCurrentDirectory())
-            .AddJsonFile("appsettings.json", optional: false)
-            .AddEnvironmentVariables()
-            .Build();
+        public AuthDbContext CreateDbContext(string[] args)
+        {
+            IConfiguration configuration = new ConfigurationBuilder()
+                .SetBasePath(Directory.GetCurrentDirectory())
+                .AddJsonFile("appsettings.json", optional: false)
+                .AddJsonFile("appsettings.Development.json", optional: true)
+                .AddEnvironmentVariables()
+                .Build();
 
-        var options = new DbContextOptionsBuilder<AuthDbContext>()
-            .UseNpgsql(configuration.GetConnectionString("DefaultConnection"))
-            .Options;
+            var connectionString = configuration.GetConnectionString("DefaultConnection");
 
-        return new AuthDbContext(options);
+            var optionsBuilder = new DbContextOptionsBuilder<AuthDbContext>();
+            optionsBuilder.UseNpgsql(connectionString);
+
+            return new AuthDbContext(optionsBuilder.Options);
+        }
     }
 }

@@ -1,6 +1,4 @@
-using Microsoft.AspNetCore.Http;
-
-namespace AuthService.Infrastructure.Security.Cookies;
+namespace AuthService.Api.Security.Cookies;
 
 public static class CookieOptionsFactory
 {

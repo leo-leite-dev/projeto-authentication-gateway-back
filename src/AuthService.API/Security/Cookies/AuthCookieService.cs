@@ -1,6 +1,4 @@
-using Microsoft.AspNetCore.Http;
-
-namespace AuthService.Infrastructure.Security.Cookies;
+namespace AuthService.Api.Security.Cookies;
 
 public sealed class AuthCookieService
 {
@@ -19,22 +17,18 @@ public sealed class AuthCookieService
         response.Cookies.Append(AccessTokenCookieName, accessToken, options);
     }
 
-    public void AppendRefreshToken(
-        HttpResponse response,
-        string refreshToken,
-        DateTimeOffset expiresAt
-    )
+    public void AppendRefreshToken(HttpResponse response, string refreshToken)
     {
         var options = CookieOptionsFactory.CreateRefreshTokenCookie();
-        options.Expires = expiresAt;
 
         response.Cookies.Append(RefreshTokenCookieName, refreshToken, options);
     }
 
     public void RemoveTokens(HttpResponse response)
     {
-        response.Cookies.Delete(AccessTokenCookieName, CookieOptionsFactory.CreateExpiredCookie());
+        var expired = CookieOptionsFactory.CreateExpiredCookie();
 
-        response.Cookies.Delete(RefreshTokenCookieName, CookieOptionsFactory.CreateExpiredCookie());
+        response.Cookies.Delete(AccessTokenCookieName, expired);
+        response.Cookies.Delete(RefreshTokenCookieName, expired);
     }
 }
