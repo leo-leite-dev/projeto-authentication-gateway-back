@@ -1,7 +1,5 @@
 using System.Net;
-using System.Text.Json;
 using AuthService.Domain.Exceptions;
-using AppException = AuthService.Application.Common.Exceptions.ApplicationException;
 
 namespace AuthService.Api.Middlewares;
 
@@ -29,19 +27,34 @@ public sealed class ExceptionHandlingMiddleware
         {
             _logger.LogWarning(ex, "Erro de domínio");
 
-            await WriteResponseAsync(context, HttpStatusCode.BadRequest, ex.Message);
+            await WriteResponseAsync(
+                context,
+                HttpStatusCode.BadRequest,
+                "domain_error",
+                ex.Message
+            );
         }
-        catch (AppException ex)
+        catch (ApplicationException ex)
         {
-            _logger.LogWarning(ex, "Erro de aplicação");
+            _logger.LogWarning(ex, "Erro de validação");
 
-            await WriteResponseAsync(context, HttpStatusCode.BadRequest, ex.Message);
+            await WriteResponseAsync(
+                context,
+                HttpStatusCode.BadRequest,
+                "validation_error",
+                ex.Message
+            );
         }
         catch (UnauthorizedAccessException ex)
         {
             _logger.LogWarning(ex, "Não autorizado");
 
-            await WriteResponseAsync(context, HttpStatusCode.Unauthorized, "Não autorizado.");
+            await WriteResponseAsync(
+                context,
+                HttpStatusCode.Unauthorized,
+                "unauthorized",
+                "Não autorizado."
+            );
         }
         catch (Exception ex)
         {
@@ -50,6 +63,7 @@ public sealed class ExceptionHandlingMiddleware
             await WriteResponseAsync(
                 context,
                 HttpStatusCode.InternalServerError,
+                "internal_error",
                 "Erro interno no servidor."
             );
         }
@@ -58,14 +72,13 @@ public sealed class ExceptionHandlingMiddleware
     private static async Task WriteResponseAsync(
         HttpContext context,
         HttpStatusCode statusCode,
+        string type,
         string message
     )
     {
-        context.Response.ContentType = "application/json";
         context.Response.StatusCode = (int)statusCode;
+        context.Response.ContentType = "application/json";
 
-        var payload = JsonSerializer.Serialize(new { error = message });
-
-        await context.Response.WriteAsync(payload);
+        await context.Response.WriteAsJsonAsync(new { type, message });
     }
 }

@@ -1,6 +1,7 @@
 using AuthService.Api.Extensions;
 using AuthService.Api.Filters;
 using AuthService.Api.Middlewares;
+using AuthService.Api.Security.Cookies;
 using AuthService.Application.DependencyInjection;
 using AuthService.Infrastructure.DependencyInjection;
 using Microsoft.AspNetCore.CookiePolicy;
@@ -13,6 +14,8 @@ builder.Services.AddControllers(options =>
 });
 
 builder.Services.AddApplication().AddInfrastructure(builder.Configuration);
+
+builder.Services.AddScoped<AuthCookieService>();
 
 builder.Services.AddJwtAuthentication(builder.Configuration);
 builder.Services.AddAuthorization();

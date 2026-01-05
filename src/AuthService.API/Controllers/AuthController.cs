@@ -5,6 +5,7 @@ using AuthService.Api.Security.Cookies;
 using AuthService.Application.UseCases.Auth.Login;
 using AuthService.Application.UseCases.Auth.Logout;
 using AuthService.Application.UseCases.Auth.RefreshTokens;
+using AuthService.Application.UseCases.Auth.Register;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
@@ -18,6 +19,7 @@ public sealed class AuthController : ControllerBase
     private readonly LoginUseCase _loginUseCase;
     private readonly RefreshTokenUseCase _refreshTokenUseCase;
     private readonly LogoutUseCase _logoutUseCase;
+    private readonly RegisterUserUseCase _registerUserUseCase;
     private readonly AuthCookieService _cookieService;
     private readonly ApiOptions _apiOptions;
 
@@ -25,6 +27,7 @@ public sealed class AuthController : ControllerBase
         LoginUseCase loginUseCase,
         RefreshTokenUseCase refreshTokenUseCase,
         LogoutUseCase logoutUseCase,
+        RegisterUserUseCase registerUserUseCase,
         AuthCookieService cookieService,
         IOptions<ApiOptions> apiOptions
     )
@@ -32,6 +35,7 @@ public sealed class AuthController : ControllerBase
         _loginUseCase = loginUseCase;
         _refreshTokenUseCase = refreshTokenUseCase;
         _logoutUseCase = logoutUseCase;
+        _registerUserUseCase = registerUserUseCase;
         _cookieService = cookieService;
         _apiOptions = apiOptions.Value;
     }
@@ -81,5 +85,20 @@ public sealed class AuthController : ControllerBase
         _cookieService.RemoveTokens(Response);
 
         return NoContent();
+    }
+
+    [HttpPost("register")]
+    [AllowAnonymous]
+    public async Task<ActionResult<RegisterUserResponse>> Register(
+        [FromBody] RegisterUserRequest request,
+        CancellationToken cancellationToken
+    )
+    {
+        var result = await _registerUserUseCase.ExecuteAsync(
+            new RegisterUserCommand(request.Username, request.Email, request.Password),
+            cancellationToken
+        );
+
+        return Created(string.Empty, new RegisterUserResponse(result.UserId));
     }
 }

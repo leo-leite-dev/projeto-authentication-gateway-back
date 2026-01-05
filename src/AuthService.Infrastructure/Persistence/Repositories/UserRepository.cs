@@ -30,7 +30,7 @@ public sealed class UserRepository : IUserRepository
     {
         return await _context
             .Users.Include(u => u.RefreshTokens)
-            .FirstOrDefaultAsync(u => u.Email.Value == email.Value, cancellationToken);
+            .FirstOrDefaultAsync(u => u.Email == email, cancellationToken);
     }
 
     public async Task<User?> GetByUsernameAsync(
@@ -40,7 +40,7 @@ public sealed class UserRepository : IUserRepository
     {
         return await _context
             .Users.Include(u => u.RefreshTokens)
-            .FirstOrDefaultAsync(u => u.Username.Value == username.Value, cancellationToken);
+            .FirstOrDefaultAsync(u => u.Username == username, cancellationToken);
     }
 
     public async Task<bool> ExistsByEmailAsync(
@@ -48,7 +48,7 @@ public sealed class UserRepository : IUserRepository
         CancellationToken cancellationToken = default
     )
     {
-        return await _context.Users.AnyAsync(u => u.Email.Value == email.Value, cancellationToken);
+        return await _context.Users.AnyAsync(u => u.Email == email, cancellationToken);
     }
 
     public async Task AddAsync(User user, CancellationToken cancellationToken = default)

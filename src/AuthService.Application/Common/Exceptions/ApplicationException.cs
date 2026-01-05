@@ -1,10 +1,9 @@
+using AuthService.Domain.Exceptions;
+
 namespace AuthService.Application.Common.Exceptions;
 
-public abstract class ApplicationException : Exception
+public sealed class ValidationException : DomainException
 {
-    protected ApplicationException(string message)
+    public ValidationException(string message)
         : base(message) { }
-
-    protected ApplicationException(string message, Exception innerException)
-        : base(message, innerException) { }
 }

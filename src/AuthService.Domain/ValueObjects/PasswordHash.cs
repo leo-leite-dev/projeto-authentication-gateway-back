@@ -7,7 +7,7 @@ public sealed class PasswordHash
     public PasswordHash(string value)
     {
         if (string.IsNullOrWhiteSpace(value))
-            throw new ArgumentException("Hash de senha inválido.", nameof(value));
+            throw new InvalidPasswordHashException();
 
         Value = value;
     }
