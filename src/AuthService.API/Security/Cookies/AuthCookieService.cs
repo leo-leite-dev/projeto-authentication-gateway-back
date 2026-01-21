@@ -24,7 +24,7 @@ public sealed class AuthCookieService
         response.Cookies.Append(RefreshTokenCookieName, refreshToken, options);
     }
 
-    public void RemoveTokens(HttpResponse response)
+    public void Clear(HttpResponse response)
     {
         var expired = CookieOptionsFactory.CreateExpiredCookie();
 

@@ -14,16 +14,27 @@ public sealed class RefreshTokenConfiguration : IEntityTypeConfiguration<Refresh
 
         builder.Property(rt => rt.Id).ValueGeneratedNever();
 
-        builder.Property(rt => rt.Token).IsRequired();
+        builder
+            .HasOne(rt => rt.User)
+            .WithMany(u => u.RefreshTokens)
+            .HasForeignKey(rt => rt.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
 
-        builder.Property(rt => rt.ExpiresAt).IsRequired();
+        builder.Property(rt => rt.UserId).IsRequired();
 
         builder.Property(rt => rt.CreatedAt).IsRequired();
 
+        builder.Property(rt => rt.ExpiresAt).IsRequired();
+
         builder.Property(rt => rt.IsRevoked).IsRequired();
 
-        builder.HasIndex(rt => rt.Token).IsUnique();
+        builder.HasIndex(rt => rt.UserId);
 
-        builder.HasOne(rt => rt.User).WithMany(u => u.RefreshTokens).HasForeignKey(rt => rt.UserId);
+        builder.HasIndex(rt => new
+        {
+            rt.UserId,
+            rt.IsRevoked,
+            rt.ExpiresAt,
+        });
     }
 }

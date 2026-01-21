@@ -14,14 +14,15 @@ public sealed class RefreshTokenRepository : IRefreshTokenRepository
         _context = context;
     }
 
-    public async Task<RefreshToken?> GetByTokenAsync(
-        string token,
+    public async Task<RefreshToken?> GetActiveByUserAsync(
+        Guid userId,
         CancellationToken cancellationToken = default
     )
     {
         return await _context
-            .RefreshTokens.Include(rt => rt.User)
-            .FirstOrDefaultAsync(rt => rt.Token == token, cancellationToken);
+            .RefreshTokens.Where(rt => rt.UserId == userId && !rt.IsRevoked && !rt.IsExpired())
+            .OrderByDescending(rt => rt.CreatedAt)
+            .FirstOrDefaultAsync(cancellationToken);
     }
 
     public async Task AddAsync(

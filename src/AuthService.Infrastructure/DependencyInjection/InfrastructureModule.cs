@@ -1,11 +1,10 @@
 using AuthService.Application.Abstractions.Repositories;
 using AuthService.Application.Abstractions.Security;
 using AuthService.Application.Abstractions.Time;
-using AuthService.Infrastructure.Configuration;
+using AuthService.Infrastructure.Gateway.Forwarding;
 using AuthService.Infrastructure.Persistence.Context;
 using AuthService.Infrastructure.Persistence.Repositories;
 using AuthService.Infrastructure.Security.Hashing;
-using AuthService.Infrastructure.Security.Tokens;
 using AuthService.Infrastructure.Time;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -28,11 +27,10 @@ public static class InfrastructureModule
         services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
 
         services.AddScoped<IPasswordHasher, BCryptPasswordHasher>();
-        services.AddScoped<ITokenService, JwtTokenService>();
 
         services.AddSingleton<IDateTimeProvider, SystemDateTimeProvider>();
 
-        services.AddInfrastructureOptions(configuration);
+        services.AddScoped<GatewayForwarder>();
 
         return services;
     }

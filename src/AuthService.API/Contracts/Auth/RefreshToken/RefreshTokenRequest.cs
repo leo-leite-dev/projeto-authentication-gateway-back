@@ -1,4 +1,4 @@
-namespace AuthService.Api.Contracts.Auth;
+namespace AuthService.Api.Contracts.Auth.RefreshToken;
 
 public sealed record RefreshTokenRequest
 {

@@ -1,3 +1,3 @@
 namespace AuthService.Application.UseCases.Auth.Logout;
 
-public sealed record LogoutCommand(Guid UserId);
+public sealed record LogoutCommand;

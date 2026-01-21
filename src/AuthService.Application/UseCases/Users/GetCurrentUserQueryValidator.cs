@@ -1,6 +1,6 @@
 using AuthService.Domain.Exceptions;
 
-namespace AuthService.Application.UseCases.Users.GetCurrentUser;
+namespace AuthService.Application.UseCases.Users;
 
 public sealed class GetCurrentUserQueryValidator
 {

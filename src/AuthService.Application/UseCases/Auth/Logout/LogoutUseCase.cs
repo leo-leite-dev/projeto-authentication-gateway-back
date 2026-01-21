@@ -1,28 +1,21 @@
 using AuthService.Application.Abstractions.Repositories;
+using AuthService.Application.Abstractions.Security;
 
 namespace AuthService.Application.UseCases.Auth.Logout;
 
 public sealed class LogoutUseCase
 {
     private readonly IRefreshTokenRepository _refreshTokenRepository;
-    private readonly LogoutCommandValidator _validator;
+    private readonly ICurrentUser _currentUser;
 
-    public LogoutUseCase(
-        IRefreshTokenRepository refreshTokenRepository,
-        LogoutCommandValidator validator
-    )
+    public LogoutUseCase(IRefreshTokenRepository refreshTokenRepository, ICurrentUser currentUser)
     {
         _refreshTokenRepository = refreshTokenRepository;
-        _validator = validator;
+        _currentUser = currentUser;
     }
 
-    public async Task ExecuteAsync(
-        LogoutCommand command,
-        CancellationToken cancellationToken = default
-    )
+    public async Task ExecuteAsync(CancellationToken cancellationToken = default)
     {
-        _validator.Validate(command);
-
-        await _refreshTokenRepository.RevokeAllByUserAsync(command.UserId, cancellationToken);
+        await _refreshTokenRepository.RevokeAllByUserAsync(_currentUser.UserId, cancellationToken);
     }
 }

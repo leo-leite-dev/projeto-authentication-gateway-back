@@ -4,6 +4,7 @@ using AuthService.Api.Middlewares;
 using AuthService.Api.Security.Cookies;
 using AuthService.Application.DependencyInjection;
 using AuthService.Infrastructure.DependencyInjection;
+using AuthService.Infrastructure.Gateway.Forwarding;
 using Microsoft.AspNetCore.CookiePolicy;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -17,8 +18,7 @@ builder.Services.AddApplication().AddInfrastructure(builder.Configuration);
 
 builder.Services.AddScoped<AuthCookieService>();
 
-builder.Services.AddJwtAuthentication(builder.Configuration);
-builder.Services.AddAuthorization();
+builder.Services.AddHttpClient<GatewayForwarder>();
 
 builder.Services.AddSwaggerDocumentation();
 
@@ -42,9 +42,6 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 app.UseCookiePolicy();
-
-app.UseAuthentication();
-app.UseAuthorization();
 
 app.MapControllers();
 

@@ -1,7 +1,6 @@
 using AuthService.Application.Abstractions.Repositories;
 using AuthService.Application.Abstractions.Security;
 using AuthService.Application.Abstractions.Time;
-using AuthService.Domain.Enums;
 using AuthService.Domain.Exceptions;
 
 namespace AuthService.Application.UseCases.Auth.RefreshTokens;
@@ -9,39 +8,33 @@ namespace AuthService.Application.UseCases.Auth.RefreshTokens;
 public sealed class RefreshTokenUseCase
 {
     private readonly IRefreshTokenRepository _refreshTokenRepository;
-    private readonly ITokenService _tokenService;
+    private readonly ICurrentUser _currentUser;
     private readonly IDateTimeProvider _dateTime;
-    private readonly RefreshTokenCommandValidator _validator;
 
     public RefreshTokenUseCase(
         IRefreshTokenRepository refreshTokenRepository,
-        ITokenService tokenService,
-        IDateTimeProvider dateTime,
-        RefreshTokenCommandValidator validator
+        ICurrentUser currentUser,
+        IDateTimeProvider dateTime
     )
     {
         _refreshTokenRepository = refreshTokenRepository;
-        _tokenService = tokenService;
+        _currentUser = currentUser;
         _dateTime = dateTime;
-        _validator = validator;
     }
 
     public async Task<RefreshTokenResult> ExecuteAsync(
-        RefreshTokenCommand command,
         CancellationToken cancellationToken = default
     )
     {
-        _validator.Validate(command);
-
         var refreshToken =
-            await _refreshTokenRepository.GetByTokenAsync(command.RefreshToken, cancellationToken)
-            ?? throw new UserException("Refresh token inválido.");
+            await _refreshTokenRepository.GetActiveByUserAsync(
+                _currentUser.UserId,
+                cancellationToken
+            ) ?? throw new UserException("Sessão inválida ou inexistente.");
 
         if (refreshToken.IsRevoked || refreshToken.IsExpired())
-            throw new UserException("Refresh token expirado ou revogado.");
+            throw new UserException("Sessão expirada ou revogada.");
 
-        var accessToken = _tokenService.GenerateToken(refreshToken.User, TokenType.AccessToken);
-
-        return new RefreshTokenResult(accessToken, _dateTime.UtcNow.AddMinutes(15));
+        return new RefreshTokenResult(_dateTime.UtcNow);
     }
 }

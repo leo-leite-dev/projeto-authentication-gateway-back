@@ -1,7 +1,6 @@
 using AuthService.Application.Abstractions.Repositories;
 using AuthService.Application.Abstractions.Security;
 using AuthService.Application.Abstractions.Time;
-using AuthService.Application.Security;
 using AuthService.Domain.Entities;
 using AuthService.Domain.Exceptions;
 using AuthService.Domain.ValueObjects;
@@ -42,14 +41,26 @@ public sealed class RegisterUserUseCase
         if (await _userRepository.ExistsByEmailAsync(email, cancellationToken))
             throw new UserException("Email já está em uso.");
 
-        var password = new Password(command.Password);
+        if (await _userRepository.ExistsByUsernameAsync(username, cancellationToken))
+            throw new UserException("Username já está em uso.");
 
-        var passwordHash = new PasswordHash(_passwordHasher.Hash(password.Value));
+        var passwordHash = new PasswordHash(_passwordHasher.Hash(command.Password));
 
-        var user = new User(Guid.NewGuid(), username, email, passwordHash, _dateTime.UtcNow);
+        var user = new User(
+            id: Guid.NewGuid(),
+            username: username,
+            email: email,
+            passwordHash: passwordHash,
+            createdAt: _dateTime.UtcNow
+        );
 
         await _userRepository.AddAsync(user, cancellationToken);
 
-        return new RegisterUserResult(user.Id);
+        return new RegisterUserResult(
+            user.Id,
+            user.Username.Value,
+            user.Email.Value,
+            user.Status.ToString()
+        );
     }
 }

@@ -2,7 +2,6 @@ using AuthService.Application.Abstractions.Repositories;
 using AuthService.Application.Abstractions.Security;
 using AuthService.Application.Abstractions.Time;
 using AuthService.Domain.Entities;
-using AuthService.Domain.Enums;
 using AuthService.Domain.Exceptions;
 using AuthService.Domain.ValueObjects;
 using BaitaHora.Domain.Features.Common.ValueObjects;
@@ -14,7 +13,6 @@ public sealed class LoginUseCase
     private readonly IUserRepository _userRepository;
     private readonly IRefreshTokenRepository _refreshTokenRepository;
     private readonly IPasswordHasher _passwordHasher;
-    private readonly ITokenService _tokenService;
     private readonly IDateTimeProvider _dateTime;
     private readonly LoginCommandValidator _validator;
 
@@ -22,7 +20,6 @@ public sealed class LoginUseCase
         IUserRepository userRepository,
         IRefreshTokenRepository refreshTokenRepository,
         IPasswordHasher passwordHasher,
-        ITokenService tokenService,
         IDateTimeProvider dateTime,
         LoginCommandValidator validator
     )
@@ -30,7 +27,6 @@ public sealed class LoginUseCase
         _userRepository = userRepository;
         _refreshTokenRepository = refreshTokenRepository;
         _passwordHasher = passwordHasher;
-        _tokenService = tokenService;
         _dateTime = dateTime;
         _validator = validator;
     }
@@ -50,20 +46,20 @@ public sealed class LoginUseCase
         if (!_passwordHasher.Verify(command.Password, user.PasswordHash))
             throw new UserException("Usuário ou senha inválidos.");
 
-        var accessToken = _tokenService.GenerateToken(user, TokenType.AccessToken);
-        var refreshTokenValue = _tokenService.GenerateToken(user, TokenType.RefreshToken);
-
         var refreshToken = new RefreshToken(
-            Guid.NewGuid(),
-            refreshTokenValue,
-            _dateTime.UtcNow.AddDays(7),
-            user.Id
+            id: Guid.NewGuid(),
+            userId: user.Id,
+            expiresAt: _dateTime.UtcNow.AddDays(7)
         );
 
-        user.AddRefreshToken(refreshToken);
         await _refreshTokenRepository.AddAsync(refreshToken, cancellationToken);
 
-        return new LoginResult(accessToken, refreshTokenValue, _dateTime.UtcNow.AddMinutes(15));
+        return new LoginResult(
+            user.Id,
+            user.Username.Value,
+            user.Email.Value,
+            user.Status.ToString()
+        );
     }
 
     private async Task<User> ResolveUserAsync(string login, CancellationToken cancellationToken)

@@ -51,6 +51,14 @@ public sealed class UserRepository : IUserRepository
         return await _context.Users.AnyAsync(u => u.Email == email, cancellationToken);
     }
 
+    public async Task<bool> ExistsByUsernameAsync(
+        Username username,
+        CancellationToken cancellationToken = default
+    )
+    {
+        return await _context.Users.AnyAsync(u => u.Username == username, cancellationToken);
+    }
+
     public async Task AddAsync(User user, CancellationToken cancellationToken = default)
     {
         await _context.Users.AddAsync(user, cancellationToken);
