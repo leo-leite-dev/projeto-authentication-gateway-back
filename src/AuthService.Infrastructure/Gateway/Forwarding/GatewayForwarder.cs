@@ -1,16 +1,21 @@
 using System.Net.Http.Headers;
 using AuthService.Infrastructure.Gateway.Context;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Configuration;
 
 namespace AuthService.Infrastructure.Gateway.Forwarding;
 
 public sealed class GatewayForwarder
 {
     private readonly HttpClient _httpClient;
+    private readonly string _conduitBaseUrl;
 
-    public GatewayForwarder(HttpClient httpClient)
+    public GatewayForwarder(HttpClient httpClient, IConfiguration configuration)
     {
         _httpClient = httpClient;
+        _conduitBaseUrl =
+            configuration["Gateway:ConduitBaseUrl"]
+            ?? throw new InvalidOperationException("Gateway:ConduitBaseUrl not configured");
     }
 
     public async Task<HttpResponseMessage> ForwardAsync(
@@ -37,11 +42,9 @@ public sealed class GatewayForwarder
         );
     }
 
-    private static Uri BuildTargetUri(HttpRequest request)
+    private Uri BuildTargetUri(HttpRequest request)
     {
-        var baseAddress = "http://conduit-api";
-
-        var uri = $"{baseAddress}{request.Path}{request.QueryString}";
+        var uri = $"{_conduitBaseUrl}{request.Path}{request.QueryString}";
         return new Uri(uri);
     }
 

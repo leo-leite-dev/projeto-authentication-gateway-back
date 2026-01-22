@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace AuthService.Api.Controllers;
 
 [ApiController]
+[ApiExplorerSettings(IgnoreApi = true)]
 [Route("{**path}")]
 public sealed class GatewayController : ControllerBase
 {

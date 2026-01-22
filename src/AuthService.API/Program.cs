@@ -1,7 +1,9 @@
 using AuthService.Api.Extensions;
 using AuthService.Api.Filters;
 using AuthService.Api.Middlewares;
+using AuthService.Api.Security;
 using AuthService.Api.Security.Cookies;
+using AuthService.Application.Abstractions.Security;
 using AuthService.Application.DependencyInjection;
 using AuthService.Infrastructure.DependencyInjection;
 using AuthService.Infrastructure.Gateway.Forwarding;
@@ -16,30 +18,48 @@ builder.Services.AddControllers(options =>
 
 builder.Services.AddApplication().AddInfrastructure(builder.Configuration);
 
-builder.Services.AddScoped<AuthCookieService>();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ICurrentUser, CurrentUser>();
 
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerDocumentation();
+
+builder.Services.AddScoped<AuthCookieService>();
 builder.Services.AddHttpClient<GatewayForwarder>();
 
-builder.Services.AddSwaggerDocumentation();
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(
+        "FrontEnd",
+        policy =>
+        {
+            policy
+                .WithOrigins("http://localhost:4200")
+                .AllowAnyHeader()
+                .AllowAnyMethod()
+                .AllowCredentials();
+        }
+    );
+});
 
 builder.Services.Configure<CookiePolicyOptions>(options =>
 {
-    options.MinimumSameSitePolicy = SameSiteMode.Strict;
+    options.MinimumSameSitePolicy = SameSiteMode.None;
     options.HttpOnly = HttpOnlyPolicy.Always;
-    options.Secure = CookieSecurePolicy.Always;
+    options.Secure = CookieSecurePolicy.SameAsRequest;
 });
 
 var app = builder.Build();
 
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+app.UseSwagger();
+app.UseSwaggerUI();
 
-app.UseHttpsRedirection();
+app.UseRouting();
+
+app.UseCors("FrontEnd");
 
 app.UseCookiePolicy();
 

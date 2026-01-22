@@ -32,11 +32,10 @@ namespace AuthService.Infrastructure.Persistence.Migrations
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    Token = table.Column<string>(type: "text", nullable: false),
+                    UserId = table.Column<Guid>(type: "uuid", nullable: false),
                     ExpiresAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     IsRevoked = table.Column<bool>(type: "boolean", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    UserId = table.Column<Guid>(type: "uuid", nullable: false)
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -50,15 +49,14 @@ namespace AuthService.Infrastructure.Persistence.Migrations
                 });
 
             migrationBuilder.CreateIndex(
-                name: "IX_refresh_tokens_Token",
-                table: "refresh_tokens",
-                column: "Token",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
                 name: "IX_refresh_tokens_UserId",
                 table: "refresh_tokens",
                 column: "UserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_refresh_tokens_UserId_IsRevoked_ExpiresAt",
+                table: "refresh_tokens",
+                columns: new[] { "UserId", "IsRevoked", "ExpiresAt" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_users_email",
