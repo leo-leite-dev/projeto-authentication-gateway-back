@@ -48,7 +48,7 @@ public sealed class AuthPublicController : ControllerBase
 
     [HttpPost("login")]
     [AllowAnonymous]
-    public async Task<ActionResult<LoginResponse>> Login(
+    public async Task<ActionResult<LoginResponseEnvelope>> Login(
         [FromBody] LoginRequest request,
         CancellationToken cancellationToken
     )
@@ -57,6 +57,14 @@ public sealed class AuthPublicController : ControllerBase
 
         _cookieService.AppendRefreshToken(Response, result.UserId.ToString());
 
-        return Ok(new LoginResponse(result.UserId, result.Username, result.Email, result.Status));
+        var userDto = new AuthUserDto(
+            result.UserId,
+            result.Username,
+            result.Email,
+            result.Status,
+            result.AccessToken
+        );
+
+        return Ok(new LoginResponseEnvelope(userDto));
     }
 }

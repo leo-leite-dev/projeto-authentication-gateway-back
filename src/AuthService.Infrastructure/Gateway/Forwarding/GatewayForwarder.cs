@@ -1,5 +1,4 @@
 using System.Net.Http.Headers;
-using AuthService.Infrastructure.Gateway.Context;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 
@@ -20,7 +19,6 @@ public sealed class GatewayForwarder
 
     public async Task<HttpResponseMessage> ForwardAsync(
         HttpRequest originalRequest,
-        GatewayUserContext userContext,
         CancellationToken cancellationToken = default
     )
     {
@@ -32,8 +30,13 @@ public sealed class GatewayForwarder
         );
 
         CopyHeaders(originalRequest, forwardedRequest);
-        InjectUserContext(forwardedRequest, userContext);
         await CopyBodyAsync(originalRequest, forwardedRequest);
+
+        var authHeader = originalRequest.Headers["Authorization"].ToString();
+        if (!string.IsNullOrWhiteSpace(authHeader))
+        {
+            forwardedRequest.Headers.TryAddWithoutValidation("Authorization", authHeader);
+        }
 
         return await _httpClient.SendAsync(
             forwardedRequest,
@@ -55,19 +58,17 @@ public sealed class GatewayForwarder
             if (header.Key.Equals("Host", StringComparison.OrdinalIgnoreCase))
                 continue;
 
-            destination.Headers.TryAddWithoutValidation(header.Key, header.Value.ToArray());
-        }
-    }
+            if (header.Key.Equals("Authorization", StringComparison.OrdinalIgnoreCase))
+                continue;
 
-    private static void InjectUserContext(
-        HttpRequestMessage request,
-        GatewayUserContext userContext
-    )
-    {
-        request.Headers.Add("X-User-Id", userContext.UserId.ToString());
-        request.Headers.Add("X-Username", userContext.Username);
-        request.Headers.Add("X-User-Email", userContext.Email);
-        request.Headers.Add("X-User-Status", userContext.Status);
+            if (!destination.Headers.TryAddWithoutValidation(header.Key, header.Value.ToArray()))
+            {
+                destination.Content?.Headers.TryAddWithoutValidation(
+                    header.Key,
+                    header.Value.ToArray()
+                );
+            }
+        }
     }
 
     private static async Task CopyBodyAsync(HttpRequest source, HttpRequestMessage destination)

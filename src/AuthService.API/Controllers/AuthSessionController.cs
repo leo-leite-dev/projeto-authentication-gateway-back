@@ -2,14 +2,12 @@ using AuthService.Api.Contracts.Auth.RefreshToken;
 using AuthService.Api.Security.Cookies;
 using AuthService.Application.UseCases.Auth.Logout;
 using AuthService.Application.UseCases.Auth.RefreshTokens;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AuthService.Api.Controllers;
 
 [ApiController]
 [Route("user")]
-[Authorize]
 public sealed class UserSessionController : ControllerBase
 {
     private readonly RefreshTokenUseCase _refreshTokenUseCase;

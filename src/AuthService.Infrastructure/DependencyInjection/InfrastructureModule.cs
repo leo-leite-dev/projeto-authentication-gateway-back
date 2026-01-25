@@ -1,10 +1,12 @@
 using AuthService.Application.Abstractions.Repositories;
 using AuthService.Application.Abstractions.Security;
 using AuthService.Application.Abstractions.Time;
+using AuthService.Application.Security;
 using AuthService.Infrastructure.Gateway.Forwarding;
 using AuthService.Infrastructure.Persistence.Context;
 using AuthService.Infrastructure.Persistence.Repositories;
 using AuthService.Infrastructure.Security.Hashing;
+using AuthService.Infrastructure.Security.Jwt;
 using AuthService.Infrastructure.Time;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -31,6 +33,11 @@ public static class InfrastructureModule
         services.AddSingleton<IDateTimeProvider, SystemDateTimeProvider>();
 
         services.AddScoped<GatewayForwarder>();
+
+        services.Configure<JwtOptions>(configuration.GetSection("Jwt"));
+
+        services.AddScoped<IJwtTokenService, JwtTokenService>();
+        services.AddScoped<JwtClaimsFactory>();
 
         return services;
     }

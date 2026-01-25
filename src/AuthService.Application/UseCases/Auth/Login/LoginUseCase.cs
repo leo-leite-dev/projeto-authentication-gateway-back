@@ -1,6 +1,7 @@
 using AuthService.Application.Abstractions.Repositories;
 using AuthService.Application.Abstractions.Security;
 using AuthService.Application.Abstractions.Time;
+using AuthService.Application.Security;
 using AuthService.Domain.Entities;
 using AuthService.Domain.Exceptions;
 using AuthService.Domain.ValueObjects;
@@ -15,13 +16,15 @@ public sealed class LoginUseCase
     private readonly IPasswordHasher _passwordHasher;
     private readonly IDateTimeProvider _dateTime;
     private readonly LoginCommandValidator _validator;
+    private readonly IJwtTokenService _jwtTokenService;
 
     public LoginUseCase(
         IUserRepository userRepository,
         IRefreshTokenRepository refreshTokenRepository,
         IPasswordHasher passwordHasher,
         IDateTimeProvider dateTime,
-        LoginCommandValidator validator
+        LoginCommandValidator validator,
+        IJwtTokenService jwtTokenService
     )
     {
         _userRepository = userRepository;
@@ -29,6 +32,7 @@ public sealed class LoginUseCase
         _passwordHasher = passwordHasher;
         _dateTime = dateTime;
         _validator = validator;
+        _jwtTokenService = jwtTokenService;
     }
 
     public async Task<LoginResult> ExecuteAsync(
@@ -54,11 +58,14 @@ public sealed class LoginUseCase
 
         await _refreshTokenRepository.AddAsync(refreshToken, cancellationToken);
 
+        var accessToken = _jwtTokenService.GenerateAccessToken(user);
+
         return new LoginResult(
             user.Id,
             user.Username.Value,
             user.Email.Value,
-            user.Status.ToString()
+            user.Status.ToString(),
+            accessToken
         );
     }
 
