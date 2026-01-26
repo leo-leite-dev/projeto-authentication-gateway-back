@@ -16,6 +16,7 @@ public sealed class CsrfProtectionMiddleware
     public async Task Invoke(HttpContext context)
     {
         var method = context.Request.Method;
+        var path = context.Request.Path;
 
         if (
             HttpMethods.IsPost(method)

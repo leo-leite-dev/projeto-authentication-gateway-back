@@ -11,6 +11,12 @@ public class OriginValidationMiddleware
 
     public async Task Invoke(HttpContext context, IOriginValidator originValidator)
     {
+        if (context.Request.Path.StartsWithSegments("/users"))
+        {
+            await _next(context);
+            return;
+        }
+
         if (!context.Request.Headers.TryGetValue("Origin", out var originValues))
         {
             await _next(context);
@@ -18,6 +24,7 @@ public class OriginValidationMiddleware
         }
 
         var origin = originValues.ToString();
+
         if (!string.IsNullOrEmpty(origin) && !originValidator.IsAllowed(origin))
         {
             context.Response.StatusCode = StatusCodes.Status403Forbidden;

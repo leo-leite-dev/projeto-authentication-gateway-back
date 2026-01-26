@@ -1,5 +1,8 @@
 using AuthService.API.Security;
+using AuthService.Api.Security.Cookies;
 using AuthService.Application.Abstractions.Security;
+using AuthService.Application.DependencyInjection;
+using AuthService.Infrastructure.DependencyInjection;
 using AuthService.Infrastructure.Security.Jwt;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -8,10 +11,15 @@ Console.WriteLine($"[ENV] ASPNETCORE_ENVIRONMENT = {builder.Environment.Environm
 Console.WriteLine($"[ENV] IsDevelopment = {builder.Environment.IsDevelopment()}");
 Console.WriteLine($"[ENV] IsProduction  = {builder.Environment.IsProduction()}");
 
+builder.Services.AddApplication();
+builder.Services.AddInfrastructure(builder.Configuration);
+
 builder.Services.AddControllers(options =>
 {
     options.Filters.Add<GlobalAntiforgeryFilter>();
 });
+
+builder.Services.AddScoped<AuthCookieService>();
 
 builder.Services.Configure<SecurityOptions>(builder.Configuration.GetSection("Security"));
 

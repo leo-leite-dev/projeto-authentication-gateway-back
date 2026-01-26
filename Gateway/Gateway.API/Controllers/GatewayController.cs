@@ -4,10 +4,10 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Gateway.Api.Controllers;
 
+[Authorize]
 [ApiController]
 [ApiExplorerSettings(IgnoreApi = true)]
-[Route("{**path}")]
-[Authorize]
+[Route("api/{**path}")]
 public sealed class GatewayController : ControllerBase
 {
     private readonly GatewayForwarder _forwarder;
@@ -18,12 +18,24 @@ public sealed class GatewayController : ControllerBase
     }
 
     [HttpGet, HttpPost, HttpPut, HttpDelete, HttpPatch]
-    public async Task<IActionResult> Forward(CancellationToken cancellationToken)
+    public async Task Forward(CancellationToken cancellationToken)
     {
-        var response = await _forwarder.ForwardAsync(Request, cancellationToken);
+        var upstreamResponse = await _forwarder.ForwardAsync(Request, cancellationToken);
 
-        var body = await response.Content.ReadAsStringAsync(cancellationToken);
+        Response.StatusCode = (int)upstreamResponse.StatusCode;
 
-        return StatusCode((int)response.StatusCode, body);
+        foreach (var header in upstreamResponse.Headers)
+        {
+            Response.Headers[header.Key] = header.Value.ToArray();
+        }
+
+        foreach (var header in upstreamResponse.Content.Headers)
+        {
+            Response.Headers[header.Key] = header.Value.ToArray();
+        }
+
+        Response.Headers.Remove("transfer-encoding");
+
+        await upstreamResponse.Content.CopyToAsync(Response.Body, cancellationToken);
     }
 }

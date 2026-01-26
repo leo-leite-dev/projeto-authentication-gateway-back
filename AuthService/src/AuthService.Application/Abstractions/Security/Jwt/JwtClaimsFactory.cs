@@ -14,7 +14,6 @@ public sealed class JwtClaimsFactory
             new Claim(JwtRegisteredClaimNames.Email, user.Email.Value),
             new Claim("username", user.Username.Value),
             new Claim("tv", user.TokenVersion.ToString()),
-            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
         };
     }
 }

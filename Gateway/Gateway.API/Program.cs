@@ -7,7 +7,6 @@ using Gateway.Api.Security.Origin;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 
-
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
@@ -24,55 +23,94 @@ builder.Services.AddHttpClient<GatewayForwarder>(client =>
     client.Timeout = TimeSpan.FromSeconds(30);
 });
 
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
+var jwtIssuer = builder.Configuration["Jwt:Issuer"];
+var jwtAudience = builder.Configuration["Jwt:Audience"];
+
+if (string.IsNullOrWhiteSpace(jwtIssuer) || string.IsNullOrWhiteSpace(jwtAudience))
+    throw new InvalidOperationException("Jwt:Issuer or Jwt:Audience not configured");
+
+var keysPath = Path.Combine(builder.Environment.ContentRootPath, "Keys");
+
+if (!Directory.Exists(keysPath))
+    throw new DirectoryNotFoundException($"JWT keys folder not found at {keysPath}");
+
+var publicKeys = new List<SecurityKey>();
+
+foreach (var file in Directory.GetFiles(keysPath, "*-public.pem"))
+{
+    var rsa = RSA.Create();
+    rsa.ImportFromPem(File.ReadAllText(file));
+
+    var keyId = Path.GetFileNameWithoutExtension(file);
+    publicKeys.Add(new RsaSecurityKey(rsa) { KeyId = keyId });
+}
+
+if (!publicKeys.Any())
+    throw new InvalidOperationException("No JWT public keys found");
+
 builder
     .Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
-        var keysPath = Path.Combine(AppContext.BaseDirectory, "Keys");
+        options.RequireHttpsMetadata = true;
+        options.SaveToken = false;
 
-        if (!Directory.Exists(keysPath))
-            throw new InvalidOperationException($"Pasta de chaves não encontrada: {keysPath}");
-
-        var publicKeys = new List<SecurityKey>();
-
-        foreach (var file in Directory.GetFiles(keysPath, "*-public.pem"))
+        options.Events = new JwtBearerEvents
         {
-            var rsa = RSA.Create();
-            rsa.ImportFromPem(File.ReadAllText(file));
+            OnMessageReceived = context =>
+            {
+                if (context.Request.Cookies.TryGetValue("access_token", out var cookieToken))
+                {
+                    context.Token = cookieToken;
+                    context.Request.Headers.Remove("Authorization");
+                }
+                else
+                {
+                    var authHeader = context.Request.Headers["Authorization"].ToString();
 
-            var keyId = Path.GetFileNameWithoutExtension(file);
+                    if (
+                        !string.IsNullOrEmpty(authHeader)
+                        && authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase)
+                    )
+                    {
+                        var headerToken = authHeader["Bearer ".Length..].Trim();
 
-            publicKeys.Add(new RsaSecurityKey(rsa) { KeyId = keyId });
-        }
+                        if (headerToken.Count(c => c == '.') == 2)
+                            context.Token = headerToken;
+                    }
+                }
 
-        if (!publicKeys.Any())
-            throw new InvalidOperationException("Nenhuma chave pública encontrada no Gateway");
+                return Task.CompletedTask;
+            },
+        };
 
         options.TokenValidationParameters = new TokenValidationParameters
         {
-            ValidateIssuer = true,
-            ValidIssuer = "auth-service",
-
-            ValidateAudience = true,
-            ValidAudience = "api",
-
-            ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
 
             IssuerSigningKeyResolver = (token, securityToken, kid, parameters) => publicKeys,
 
-            ClockSkew = TimeSpan.Zero,
-            ValidAlgorithms = new[] { SecurityAlgorithms.RsaSha256 },
+            ValidateIssuer = true,
+            ValidIssuer = jwtIssuer,
+
+            ValidateAudience = true,
+            ValidAudience = jwtAudience,
+
+            ValidateLifetime = true,
+            ClockSkew = TimeSpan.FromSeconds(30),
         };
     });
 
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
 app.UseMiddleware<SecurityHeadersMiddleware>();
 
+app.MapSwagger().AllowAnonymous();
 app.UseSwagger();
 app.UseSwaggerUI();
 
@@ -81,23 +119,11 @@ app.UseRouting();
 app.UseCors(CorsPolicyExtensions.DefaultPolicy);
 
 app.UseMiddleware<OriginValidationMiddleware>();
-app.UseMiddleware<CsrfProtectionMiddleware>();
 
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.Use(
-    async (ctx, next) =>
-    {
-        var sw = System.Diagnostics.Stopwatch.StartNew();
-        await next();
-        sw.Stop();
-
-        Console.WriteLine(
-            $"[Gateway] {ctx.Request.Method} {ctx.Request.Path} => {ctx.Response.StatusCode} ({sw.ElapsedMilliseconds}ms)"
-        );
-    }
-);
+app.UseMiddleware<CsrfProtectionMiddleware>();
 
 app.MapControllers();
 app.MapGet("/health", () => Results.Ok("Gateway OK"));

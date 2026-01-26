@@ -34,13 +34,16 @@ public sealed class GatewayForwarder
         );
 
         CopyHeaders(originalRequest, forwardedRequest);
+
         await CopyBodyAsync(originalRequest, forwardedRequest);
 
         var authHeader = originalRequest.Headers["Authorization"].ToString();
         if (!string.IsNullOrWhiteSpace(authHeader))
-        {
             forwardedRequest.Headers.TryAddWithoutValidation("Authorization", authHeader);
-        }
+
+        var cookieHeader = originalRequest.Headers["Cookie"].ToString();
+        if (!string.IsNullOrWhiteSpace(cookieHeader))
+            forwardedRequest.Headers.TryAddWithoutValidation("Cookie", cookieHeader);
 
         return await _httpClient.SendAsync(
             forwardedRequest,
@@ -56,6 +59,9 @@ public sealed class GatewayForwarder
         if (path.StartsWith("/users") || path.StartsWith("/user"))
             return new Uri($"{_authBaseUrl}{path}{request.QueryString}");
 
+        if (path.StartsWith("/api", StringComparison.OrdinalIgnoreCase))
+            path = path.Substring(4);
+
         return new Uri($"{_conduitBaseUrl}{path}{request.QueryString}");
     }
 
@@ -67,6 +73,9 @@ public sealed class GatewayForwarder
                 continue;
 
             if (header.Key.Equals("Authorization", StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            if (header.Key.Equals("Cookie", StringComparison.OrdinalIgnoreCase))
                 continue;
 
             if (!destination.Headers.TryAddWithoutValidation(header.Key, header.Value.ToArray()))

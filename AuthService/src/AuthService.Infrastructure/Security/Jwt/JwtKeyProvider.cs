@@ -27,7 +27,8 @@ public sealed class JwtKeyProvider : IJwtKeyProvider
             var rsa = RSA.Create();
             rsa.ImportFromPem(File.ReadAllText(file));
 
-            var keyId = Path.GetFileNameWithoutExtension(file);
+            var fileName = Path.GetFileName(file);
+            var keyId = fileName.Replace("-private.pem", "");
 
             privateKeys[keyId] = new RsaSecurityKey(rsa) { KeyId = keyId };
 
