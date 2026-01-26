@@ -1,7 +1,6 @@
 using AuthService.Application.Abstractions.Repositories;
 using AuthService.Application.Abstractions.Security;
 using AuthService.Application.Abstractions.Time;
-using AuthService.Application.Security;
 using AuthService.Domain.Entities;
 using AuthService.Domain.Exceptions;
 using AuthService.Domain.ValueObjects;

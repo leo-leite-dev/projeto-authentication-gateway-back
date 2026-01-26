@@ -1,5 +1,5 @@
 using AuthService.Application.Abstractions.Repositories;
-using AuthService.Application.Security;
+using AuthService.Application.Abstractions.Security;
 using AuthService.Domain.Entities;
 using AuthService.Domain.Exceptions;
 

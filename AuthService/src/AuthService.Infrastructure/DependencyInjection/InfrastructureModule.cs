@@ -1,7 +1,7 @@
 using AuthService.Application.Abstractions.Repositories;
 using AuthService.Application.Abstractions.Security;
+using AuthService.Application.Abstractions.Security.Jwt;
 using AuthService.Application.Abstractions.Time;
-using AuthService.Application.Security;
 using AuthService.Infrastructure.Persistence.Context;
 using AuthService.Infrastructure.Persistence.Repositories;
 using AuthService.Infrastructure.Security.Hashing;

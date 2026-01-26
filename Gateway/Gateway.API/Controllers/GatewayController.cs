@@ -1,4 +1,5 @@
 using Gateway.API.Forwarding;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Gateway.Api.Controllers;
@@ -6,6 +7,7 @@ namespace Gateway.Api.Controllers;
 [ApiController]
 [ApiExplorerSettings(IgnoreApi = true)]
 [Route("{**path}")]
+[Authorize]
 public sealed class GatewayController : ControllerBase
 {
     private readonly GatewayForwarder _forwarder;

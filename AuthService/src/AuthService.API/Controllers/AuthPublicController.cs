@@ -4,6 +4,7 @@ using AuthService.Api.Mappers;
 using AuthService.Api.Security.Cookies;
 using AuthService.Application.UseCases.Auth.Login;
 using AuthService.Application.UseCases.Auth.Register;
+using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -16,16 +17,19 @@ public sealed class AuthPublicController : ControllerBase
     private readonly LoginUseCase _loginUseCase;
     private readonly RegisterUserUseCase _registerUserUseCase;
     private readonly AuthCookieService _cookieService;
+    private readonly IAntiforgery _antiforgery;
 
     public AuthPublicController(
         LoginUseCase loginUseCase,
         RegisterUserUseCase registerUserUseCase,
-        AuthCookieService cookieService
+        AuthCookieService cookieService,
+        IAntiforgery antiforgery
     )
     {
         _loginUseCase = loginUseCase;
         _registerUserUseCase = registerUserUseCase;
         _cookieService = cookieService;
+        _antiforgery = antiforgery;
     }
 
     [HttpPost]
@@ -56,6 +60,8 @@ public sealed class AuthPublicController : ControllerBase
         var result = await _loginUseCase.ExecuteAsync(request.ToCommand(), cancellationToken);
 
         _cookieService.AppendRefreshToken(Response, result.UserId.ToString());
+
+        _antiforgery.GetAndStoreTokens(HttpContext);
 
         var userDto = new AuthUserDto(
             result.UserId,

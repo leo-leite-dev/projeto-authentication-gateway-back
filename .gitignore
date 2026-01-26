@@ -42,3 +42,5 @@ appsettings.Local.json
 # Publish
 *.pubxml
 *.publishsettings
+
+**/auth-2025-01-private.pem

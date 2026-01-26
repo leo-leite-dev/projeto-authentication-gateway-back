@@ -1,53 +1,52 @@
-using AuthService.Api.Extensions;
-using AuthService.Api.Filters;
-using AuthService.Api.Middlewares;
-using AuthService.Api.Security;
-using AuthService.Api.Security.Cookies;
+using AuthService.API.Security;
 using AuthService.Application.Abstractions.Security;
-using AuthService.Application.DependencyInjection;
-using AuthService.Infrastructure.DependencyInjection;
-using Microsoft.AspNetCore.CookiePolicy;
+using AuthService.Infrastructure.Security.Jwt;
 
 var builder = WebApplication.CreateBuilder(args);
 
+Console.WriteLine($"[ENV] ASPNETCORE_ENVIRONMENT = {builder.Environment.EnvironmentName}");
+Console.WriteLine($"[ENV] IsDevelopment = {builder.Environment.IsDevelopment()}");
+Console.WriteLine($"[ENV] IsProduction  = {builder.Environment.IsProduction()}");
+
 builder.Services.AddControllers(options =>
 {
-    options.Filters.Add<ValidationFilter>();
+    options.Filters.Add<GlobalAntiforgeryFilter>();
 });
 
-builder.Services.AddApplication().AddInfrastructure(builder.Configuration);
+builder.Services.Configure<SecurityOptions>(builder.Configuration.GetSection("Security"));
 
-builder.Services.AddHttpContextAccessor();
-builder.Services.AddScoped<ICurrentUser, CurrentUserService>();
+builder.Services.AddSingleton<JwtKeyProvider>();
+builder.Services.AddSingleton<IJwtKeyProvider>(sp => sp.GetRequiredService<JwtKeyProvider>());
+
+builder.Services.AddJwtAuthentication(builder.Configuration);
+
+builder.Services.AddCustomAntiforgery(builder.Environment);
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-builder.Services.AddSwaggerDocumentation();
-
-builder.Services.AddScoped<AuthCookieService>();
-
-
-builder.Services.Configure<CookiePolicyOptions>(options =>
-{
-    options.MinimumSameSitePolicy = SameSiteMode.None;
-    options.HttpOnly = HttpOnlyPolicy.Always;
-    options.Secure = CookieSecurePolicy.SameAsRequest;
-});
 
 var app = builder.Build();
 
-app.UseMiddleware<ExceptionHandlingMiddleware>();
+app.UseHttpsRedirection();
+app.UseHsts();
+
+app.UseCookiePolicy(
+    new CookiePolicyOptions
+    {
+        MinimumSameSitePolicy = SameSiteMode.Lax,
+        Secure = builder.Environment.IsDevelopment()
+            ? CookieSecurePolicy.None
+            : CookieSecurePolicy.Always,
+    }
+);
+
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.UseSwagger();
 app.UseSwaggerUI();
 
-app.UseRouting();
-
-
-app.UseCookiePolicy();
-
 app.MapControllers();
-
 app.MapGet("/health", () => Results.Ok("AuthService OK"));
 
 app.Run();

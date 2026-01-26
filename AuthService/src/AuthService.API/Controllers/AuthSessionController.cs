@@ -1,27 +1,33 @@
 using AuthService.Api.Security.Cookies;
 using AuthService.Application.UseCases.Auth.Logout;
 using AuthService.Application.UseCases.Auth.RefreshTokens;
+using Microsoft.AspNetCore.Antiforgery;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AuthService.Api.Controllers;
 
 [ApiController]
 [Route("user")]
-public sealed class UserSessionController : ControllerBase
+[Authorize]
+public sealed class AuthSessionController : ControllerBase
 {
     private readonly RefreshTokenUseCase _refreshTokenUseCase;
     private readonly LogoutUseCase _logoutUseCase;
     private readonly AuthCookieService _cookieService;
+    private readonly IAntiforgery _antiforgery;
 
-    public UserSessionController(
+    public AuthSessionController(
         RefreshTokenUseCase refreshTokenUseCase,
         LogoutUseCase logoutUseCase,
-        AuthCookieService cookieService
+        AuthCookieService cookieService,
+        IAntiforgery antiforgery
     )
     {
         _refreshTokenUseCase = refreshTokenUseCase;
         _logoutUseCase = logoutUseCase;
         _cookieService = cookieService;
+        _antiforgery = antiforgery;
     }
 
     [HttpPost("refresh")]
@@ -48,6 +54,8 @@ public sealed class UserSessionController : ControllerBase
             }
         );
 
+        _antiforgery.GetAndStoreTokens(HttpContext);
+
         return Ok(new { accessToken = result.AccessToken });
     }
 
@@ -64,6 +72,8 @@ public sealed class UserSessionController : ControllerBase
         await _logoutUseCase.ExecuteAsync(command, cancellationToken);
 
         _cookieService.Clear(Response);
+
+        _antiforgery.GetAndStoreTokens(HttpContext);
 
         return NoContent();
     }

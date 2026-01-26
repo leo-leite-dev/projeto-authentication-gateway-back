@@ -12,6 +12,7 @@ public class User
     public PasswordHash PasswordHash { get; private set; } = null!;
     public UserStatus Status { get; private set; }
     public DateTime CreatedAt { get; private set; }
+    public int TokenVersion { get; private set; }
 
     private readonly List<RefreshToken> _refreshTokens = new();
     public IReadOnlyCollection<RefreshToken> RefreshTokens => _refreshTokens.AsReadOnly();
@@ -32,6 +33,7 @@ public class User
         PasswordHash = passwordHash;
         CreatedAt = createdAt;
         Status = UserStatus.Active;
+        TokenVersion = 0;
     }
 
     public void Deactivate()
@@ -70,5 +72,10 @@ public class User
         {
             token.Revoke();
         }
+    }
+
+    public void IncrementTokenVersion()
+    {
+        TokenVersion++;
     }
 }
