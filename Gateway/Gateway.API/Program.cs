@@ -1,5 +1,5 @@
 using System.Security.Cryptography;
-using Gateway.API.Forwarding;
+using Gateway.Api.Forwarding;
 using Gateway.Api.Security.Cors;
 using Gateway.API.Security.Csrf;
 using Gateway.Api.Security.Headers;

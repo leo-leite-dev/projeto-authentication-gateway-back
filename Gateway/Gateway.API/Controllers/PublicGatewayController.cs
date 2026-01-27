@@ -1,4 +1,4 @@
-using Gateway.API.Forwarding;
+using Gateway.Api.Forwarding;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 

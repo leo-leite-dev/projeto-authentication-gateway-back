@@ -1,24 +1,21 @@
 using System.Net.Http.Headers;
 
-namespace Gateway.API.Forwarding;
+namespace Gateway.Api.Forwarding;
+
+public sealed record GatewayRoute(string Prefix, string BaseUrl);
 
 public sealed class GatewayForwarder
 {
     private readonly HttpClient _httpClient;
-    private readonly string _authBaseUrl;
-    private readonly string _conduitBaseUrl;
+    private readonly IReadOnlyList<GatewayRoute> _routes;
 
     public GatewayForwarder(HttpClient httpClient, IConfiguration configuration)
     {
         _httpClient = httpClient;
 
-        _authBaseUrl =
-            configuration["Gateway:AuthServiceBaseUrl"]
-            ?? throw new InvalidOperationException("Gateway:AuthServiceBaseUrl not configured");
-
-        _conduitBaseUrl =
-            configuration["Gateway:ConduitApiBaseUrl"]
-            ?? throw new InvalidOperationException("Gateway:ConduitApiBaseUrl not configured");
+        _routes =
+            configuration.GetSection("Gateway:Routes").Get<List<GatewayRoute>>()
+            ?? throw new InvalidOperationException("Gateway:Routes not configured");
     }
 
     public async Task<HttpResponseMessage> ForwardAsync(
@@ -34,7 +31,6 @@ public sealed class GatewayForwarder
         );
 
         CopyHeaders(originalRequest, forwardedRequest);
-
         await CopyBodyAsync(originalRequest, forwardedRequest);
 
         var authHeader = originalRequest.Headers["Authorization"].ToString();
@@ -56,13 +52,16 @@ public sealed class GatewayForwarder
     {
         var path = request.Path.Value ?? "";
 
-        if (path.StartsWith("/users") || path.StartsWith("/user"))
-            return new Uri($"{_authBaseUrl}{path}{request.QueryString}");
+        var route = _routes
+            .OrderByDescending(r => r.Prefix.Length)
+            .FirstOrDefault(r => path.StartsWith(r.Prefix, StringComparison.OrdinalIgnoreCase));
 
-        if (path.StartsWith("/api", StringComparison.OrdinalIgnoreCase))
-            path = path.Substring(4);
+        if (route is null)
+            throw new InvalidOperationException($"No backend route found for path {path}");
 
-        return new Uri($"{_conduitBaseUrl}{path}{request.QueryString}");
+        var downstreamPath = path.Substring(route.Prefix.Length);
+
+        return new Uri($"{route.BaseUrl}{downstreamPath}{request.QueryString}");
     }
 
     private static void CopyHeaders(HttpRequest source, HttpRequestMessage destination)
@@ -71,10 +70,8 @@ public sealed class GatewayForwarder
         {
             if (header.Key.Equals("Host", StringComparison.OrdinalIgnoreCase))
                 continue;
-
             if (header.Key.Equals("Authorization", StringComparison.OrdinalIgnoreCase))
                 continue;
-
             if (header.Key.Equals("Cookie", StringComparison.OrdinalIgnoreCase))
                 continue;
 
